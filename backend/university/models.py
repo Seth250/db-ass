@@ -6,6 +6,9 @@ from django.conf import settings
 class Faculty(models.Model):
 	name = models.CharField(max_length=75)
 
+	class Meta:
+		verbose_name_plural = 'faculties'
+
 	def __str__(self):
 		return self.name
 

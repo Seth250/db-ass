@@ -9,8 +9,8 @@ from .managers import UserManager
 
 class User(PermissionsMixin, AbstractBaseUser):
 	first_name = models.CharField(_('first name'), max_length=25)
-	last_name = models.CharField(_('last_name'), max_length=25)
-	username = models.CharField(_('username'), max_length=25, unique=True)
+	last_name = models.CharField(_('last name'), max_length=25)
+	# username = models.CharField(_('username'), max_length=25, unique=True)
 	email = models.EmailField(
 		_('email address'),
 		unique=True,
@@ -35,7 +35,7 @@ class User(PermissionsMixin, AbstractBaseUser):
 	objects = UserManager()
 
 	USERNAME_FIELD = 'email'
-	REQUIRED_FIELDS = ['username']
+	REQUIRED_FIELDS = ['first_name', 'last_name']
 
 	class Meta:
 		verbose_name = 'user'
