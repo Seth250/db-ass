@@ -30,21 +30,21 @@ class Course(models.Model):
 		return self.code
 
 
+class Score(models.Model):
+	course = models.ForeignKey(Course, on_delete=models.CASCADE)
+	score = models.PositiveIntegerField(default=0)
+
+	def __str__(self):
+		return 'score: %s for %s' % (self.score, self.course)
+
+
 class Student(models.Model):
 	user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 	matric_number = models.PositiveIntegerField(unique=True)
 	department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='students')
-	faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='students')
-	courses = models.ManyToManyField(Course, related_name='students', through='Score')
+	# faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE, related_name='students')
+	courses = models.ManyToManyField(Course, related_name='students')
+	scores = models.ManyToManyField(Score, related_name='students')
 
 	def __str__(self):
 		return '%d' % self.matric_number
-
-
-class Score(models.Model):
-	student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='scores')
-	course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='scores')
-	score = models.PositiveIntegerField(default=0)
-
-	def __str__(self):
-		return '%s scored %s for %s' % (self.student, self.score, self.course)
