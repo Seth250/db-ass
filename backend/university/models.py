@@ -38,7 +38,7 @@ class Student(models.Model):
 	courses = models.ManyToManyField(Course, related_name='students', through='Score')
 
 	def __str__(self):
-		return self.user
+		return '%d' % self.matric_number
 
 
 class Score(models.Model):
@@ -47,4 +47,4 @@ class Score(models.Model):
 	score = models.PositiveIntegerField(default=0)
 
 	def __str__(self):
-		return self.student
+		return '%s scored %s for %s' % (self.student, self.score, self.course)
