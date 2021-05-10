@@ -72,10 +72,19 @@ class StudentSerializer(serializers.HyperlinkedModelSerializer):
 		user = get_user_model().objects.create_user(**user_data)
 		courses = validated_data.pop('courses')
 		scores_data = validated_data.pop('scores')
-		scores = [Score.objects.get_or_create(**data)[0] for data in scores_data]
 		student = Student.objects.create(user=user, **validated_data)
+		if scores_data:
+			# scores = []
+			for data in scores_data:
+				score = Score.objects.get_or_create(**data)[0]
+				# scores.append(score)
+				if student.scores.filter(course=score.course).exists():
+					raise serializers.ValidationError('Duplicate score entry for course %s' % score.course)
+
+				student.scores.add(score)
+		# scores = [Score.objects.get_or_create(**data)[0] for data in scores_data]
 		student.courses.add(*courses)
-		student.scores.add(*scores)
+		# student.scores.add(*scores)
 		return student
 
 	@transaction.atomic
@@ -87,7 +96,13 @@ class StudentSerializer(serializers.HyperlinkedModelSerializer):
 
 		scores_data = validated_data.get('scores', [])
 		if scores_data:
-			scores = [Score.objects.get_or_create(**data)[0] for data in scores_data]
+			scores = []
+			for data in scores_data:
+				score = Score.objects.get_or_create(**data)[0]
+				scores.append(score)
+				if instance.scores.filter(course=score.course).exists():
+					raise serializers.ValidationError('Duplicate score entry for course %s' % score.course)
+			# scores = [Score.objects.get_or_create(**data)[0] for data in scores_data]
 			instance.scores.add(*scores)
 			
 		return instance
