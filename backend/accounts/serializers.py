@@ -18,10 +18,9 @@ class UserSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = UserModel
 		fields = ('id', 'first_name', 'last_name', 'email', 'password', 'password2')
-		read_only_fields = ('email', )
 
 	def validate(self, data):
-		password = data['passsword']
+		password = data['password']
 		password2 = data.pop('password2')
 		errors = collections.defaultdict(list)
 

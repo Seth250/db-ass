@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Faculty, Department, Course, Student, Score
+from .models import Faculty, Department, Course, Score, Student, StudentScore
 from accounts.serializers import UserSerializer
 from django.db import transaction
 from django.contrib.auth import get_user_model
@@ -14,16 +14,16 @@ class FacultySerializer(serializers.HyperlinkedModelSerializer):
 
 
 class DepartmentSerializer(serializers.HyperlinkedModelSerializer):
-	url = serializers.HyperlinkedIdentityField(view_name='university:department-detail')
+	url = serializers.HyperlinkedIdentityField(view_name='university:department-detail', lookup_field='slug')
 	faculty = FacultySerializer()
 
 	class Meta:
 		model = Department
-		fields = ('id', 'url', 'name', 'faculty')
+		fields = ('id', 'url', 'name', 'slug', 'faculty')
 
 
 class CourseSerializer(serializers.HyperlinkedModelSerializer):
-	url = serializers.HyperlinkedIdentityField(view_name='university:course-detail')
+	url = serializers.HyperlinkedIdentityField(view_name='university:course-detail', lookup_field='code')
 	# department = DepartmentSerializer()
 	department = serializers.StringRelatedField()
 
@@ -33,7 +33,11 @@ class CourseSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class ScoreSerializer(serializers.ModelSerializer):
-	course = serializers.StringRelatedField()
+	course = serializers.HyperlinkedRelatedField(
+		view_name='university:course-detail', 
+		queryset=Course.objects.all(),
+		lookup_field='code'
+	)
 
 	class Meta:
 		model = Score
@@ -41,10 +45,21 @@ class ScoreSerializer(serializers.ModelSerializer):
 
 
 class StudentSerializer(serializers.HyperlinkedModelSerializer):
-	url = serializers.HyperlinkedIdentityField(view_name='university:student-detail')
+	url = serializers.HyperlinkedIdentityField(view_name='university:student-detail', lookup_field='matric_number')
 	user = UserSerializer()
-	department = DepartmentSerializer()
-	courses = CourseSerializer(many=True)
+	# department = DepartmentSerializer()
+	department = serializers.HyperlinkedRelatedField(
+		view_name='university:department-detail',
+		queryset=Department.objects.all(),
+		lookup_field='slug'
+	)
+	# courses = CourseSerializer(many=True)
+	courses = serializers.HyperlinkedRelatedField(
+		view_name='university:course-detail',
+		queryset=Course.objects.all(),
+		lookup_field='code',
+		many=True
+	)
 	scores = ScoreSerializer(many=True)
 
 	class Meta:
@@ -55,5 +70,24 @@ class StudentSerializer(serializers.HyperlinkedModelSerializer):
 	def create(self, validated_data):
 		user_data = validated_data.pop('user')
 		user = get_user_model().objects.create_user(**user_data)
+		courses = validated_data.pop('courses')
+		scores_data = validated_data.pop('scores')
+		scores = [Score.objects.get_or_create(**data)[0] for data in scores_data]
 		student = Student.objects.create(user=user, **validated_data)
+		student.courses.add(*courses)
+		student.scores.add(*scores)
 		return student
+
+	@transaction.atomic
+	def update(self, instance, validated_data):
+		instance.department = validated_data.get('department', instance.department)
+		courses = validated_data.get('courses', [])
+		if courses:
+			instance.courses.add(*courses)
+
+		scores_data = validated_data.get('scores', [])
+		if scores_data:
+			scores = [Score.objects.get_or_create(**data)[0] for data in scores_data]
+			instance.scores.add(*scores)
+			
+		return instance
