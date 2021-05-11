@@ -46,7 +46,7 @@ class ScoreSerializer(serializers.ModelSerializer):
 
 class StudentSerializer(serializers.HyperlinkedModelSerializer):
 	url = serializers.HyperlinkedIdentityField(view_name='university:student-detail', lookup_field='matric_number')
-	user = UserSerializer()
+	user = UserSerializer(read_only=True)
 	# department = DepartmentSerializer()
 	department = serializers.HyperlinkedRelatedField(
 		view_name='university:department-detail',
@@ -74,17 +74,18 @@ class StudentSerializer(serializers.HyperlinkedModelSerializer):
 		scores_data = validated_data.pop('scores')
 		student = Student.objects.create(user=user, **validated_data)
 		if scores_data:
-			# scores = []
+			# preventing duplicate course scores for a particular student
 			for data in scores_data:
 				score = Score.objects.get_or_create(**data)[0]
-				# scores.append(score)
-				if student.scores.filter(course=score.course).exists():
-					raise serializers.ValidationError('Duplicate score entry for course %s' % score.course)
+				qs = student.scores.filter(course=score.course)
+				if qs.exists():
+					student.scores.remove(*qs)
 
 				student.scores.add(score)
+
 		# scores = [Score.objects.get_or_create(**data)[0] for data in scores_data]
-		student.courses.add(*courses)
 		# student.scores.add(*scores)
+		student.courses.add(*courses)
 		return student
 
 	@transaction.atomic
@@ -96,13 +97,12 @@ class StudentSerializer(serializers.HyperlinkedModelSerializer):
 
 		scores_data = validated_data.get('scores', [])
 		if scores_data:
-			scores = []
 			for data in scores_data:
 				score = Score.objects.get_or_create(**data)[0]
-				scores.append(score)
-				if instance.scores.filter(course=score.course).exists():
-					raise serializers.ValidationError('Duplicate score entry for course %s' % score.course)
-			# scores = [Score.objects.get_or_create(**data)[0] for data in scores_data]
-			instance.scores.add(*scores)
-			
+				qs = instance.scores.filter(course=score.course)
+				if qs.exists():
+					instance.scores.remove(*qs)
+
+				instance.scores.add(score)
+		
 		return instance

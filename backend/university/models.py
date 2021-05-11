@@ -71,12 +71,17 @@ class StudentScore(models.Model):
 		return '%s scored %s' % (self.student, self.score)
 
 	def clean(self, *args, **kwargs):
+    	# preventing duplicate course scores for a particular student
 		if self.score_id and self.score.course_id:
-			if self.__class__.objects.filter(student=self.student, score__course=self.score.course).exists():
-				raise exceptions.ValidationError(
-					_('Instance of StudentScore with student and score.course already exists.'),
-					code='unique_together',
-				)
+			# if self.__class__.objects.filter(student=self.student, score__course=self.score.course).exists():
+			# 	raise exceptions.ValidationError(
+			# 		_('Instance of StudentScore with student and score.course already exists.'),
+			# 		code='unique_together',
+			# 	)
+			qs = self.__class__.objects.filter(student=self.student, score__course=self.score.course)
+			# if there is already an existing course score, remove it so that only the latest addition would show
+			if qs.exists():
+				qs.delete()
 
 
 # class Student(models.Model):
